@@ -4,9 +4,11 @@ Start:  python app.py
 """
 from __future__ import annotations
 
+import faulthandler
 import json
 import sys
 import time
+import traceback
 import urllib.request
 from pathlib import Path
 from typing import Optional
@@ -662,7 +664,31 @@ class MainWindow(QWidget):
         self.refresh()
 
 
+def setup_logging() -> None:
+    """Schreibt Fehler und Abstürze in app.log (neben den Account-Daten), damit man sie auswerten kann."""
+    try:
+        from accounts_store import default_data_dir
+        from PySide6.QtCore import qInstallMessageHandler
+
+        folder = default_data_dir()
+        folder.mkdir(parents=True, exist_ok=True)
+        log = open(folder / "app.log", "a", buffering=1, encoding="utf-8")
+        log.write(f"\n=== Start {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
+        faulthandler.enable(file=log, all_threads=True)
+
+        def hook(exc_type, exc, tb):
+            traceback.print_exception(exc_type, exc, tb, file=log)
+            log.flush()
+
+        sys.excepthook = hook
+        qInstallMessageHandler(lambda mode, ctx, msg: log.write(f"[Qt] {msg}\n"))
+        sys._ras_log = log  # Referenz halten
+    except Exception:
+        pass
+
+
 def main() -> int:
+    setup_logging()
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     app.setStyleSheet(STYLE)

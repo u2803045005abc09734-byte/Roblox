@@ -1,9 +1,12 @@
 name: Windows-exe bauen
 
 on:
-  workflow_dispatch:      # manuell per Knopfdruck starten
   push:
-    tags: ["v*"]
+    branches: [main]      # läuft automatisch bei jedem Hochladen
+  workflow_dispatch:      # oder manuell per Knopfdruck
+
+permissions:
+  contents: write         # nötig, um die exe als Release zu veröffentlichen
 
 jobs:
   build:
@@ -33,3 +36,10 @@ jobs:
         with:
           name: RobloxAccountSwitcher-windows
           path: RobloxAccountSwitcher-windows.zip
+
+      - name: Release veröffentlichen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Account Switcher Build ${{ github.run_number }}
+          files: RobloxAccountSwitcher-windows.zip
